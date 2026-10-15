@@ -36,9 +36,11 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   void _save() {
     if (_formKey.currentState!.validate()) {
       final medicine = Medicine(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000000),
         name: _nameController.text.trim(),
         dose: _doseController.text.trim(),
-        time: _selectedTime.format(context),
+        hour: _selectedTime.hour,
+        minute: _selectedTime.minute,
       );
       Navigator.pop(context, medicine);
     }
