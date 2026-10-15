@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 
 class AddMedicineScreen extends StatefulWidget {
-  const AddMedicineScreen({super.key});
+  /// If this is given, the screen edits that medicine instead of adding a new one.
+  final Medicine? existing;
+
+  const AddMedicineScreen({super.key, this.existing});
 
   @override
   State<AddMedicineScreen> createState() => _AddMedicineScreenState();
@@ -10,9 +13,22 @@ class AddMedicineScreen extends StatefulWidget {
 
 class _AddMedicineScreenState extends State<AddMedicineScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _doseController = TextEditingController();
-  TimeOfDay _selectedTime = const TimeOfDay(hour: 8, minute: 0);
+  late final TextEditingController _nameController;
+  late final TextEditingController _doseController;
+  late TimeOfDay _selectedTime;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    _nameController = TextEditingController(text: existing?.name ?? '');
+    _doseController = TextEditingController(text: existing?.dose ?? '');
+    _selectedTime = existing == null
+        ? const TimeOfDay(hour: 8, minute: 0)
+        : TimeOfDay(hour: existing.hour, minute: existing.minute);
+  }
 
   @override
   void dispose() {
@@ -36,7 +52,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   void _save() {
     if (_formKey.currentState!.validate()) {
       final medicine = Medicine(
-        id: DateTime.now().millisecondsSinceEpoch.remainder(100000000),
+        id:
+            widget.existing?.id ??
+            DateTime.now().millisecondsSinceEpoch.remainder(100000000),
         name: _nameController.text.trim(),
         dose: _doseController.text.trim(),
         hour: _selectedTime.hour,
@@ -49,7 +67,9 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Medicine')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Medicine' : 'Add Medicine'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -90,7 +110,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _save,
-                  child: const Text('Save'),
+                  child: Text(_isEditing ? 'Save changes' : 'Save'),
                 ),
               ),
             ],
