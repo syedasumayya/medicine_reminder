@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
+import '../utils/time_utils.dart';
 
 class AddMedicineScreen extends StatefulWidget {
   /// If this is given, the screen edits that medicine instead of adding a new one.
@@ -59,6 +60,7 @@ class _AddMedicineScreenState extends State<AddMedicineScreen> {
         dose: _doseController.text.trim(),
         hour: _selectedTime.hour,
         minute: _selectedTime.minute,
+        createdOn: _isEditing ? widget.existing!.createdOn : todayKey(),
       );
       Navigator.pop(context, medicine);
     }

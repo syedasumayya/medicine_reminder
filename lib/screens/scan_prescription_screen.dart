@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/prescription_parser.dart';
+import '../utils/time_utils.dart';
 
 class ScanPrescriptionScreen extends StatefulWidget {
   const ScanPrescriptionScreen({super.key});
@@ -57,6 +58,7 @@ Date: 15-10-2026
             dose: _results[i].dose,
             hour: hour,
             minute: 0,
+            createdOn: todayKey(),
           ),
         );
         counter++;
