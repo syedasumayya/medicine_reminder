@@ -6,6 +6,7 @@ import '../services/dose_log_storage.dart';
 import '../services/medicine_storage.dart';
 import '../utils/time_utils.dart';
 import 'add_medicine_screen.dart';
+import 'report_screen.dart';
 import 'scan_prescription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -133,6 +134,16 @@ class _HomeScreenState extends State<HomeScreen> {
       _medicines.addAll(result);
     });
     await _medicineStorage.save(_medicines);
+  }
+
+  /// Opens the weekly report.
+  void _openReport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReportScreen(medicines: _medicines, logs: _logs),
+      ),
+    );
   }
 
   Future<void> _confirmDelete(Medicine medicine) async {
@@ -342,6 +353,11 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('My Medicines'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Weekly report',
+            onPressed: _openReport,
+          ),
           IconButton(
             icon: const Icon(Icons.document_scanner_outlined),
             tooltip: 'Scan prescription',
