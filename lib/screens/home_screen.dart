@@ -6,6 +6,7 @@ import '../services/dose_log_storage.dart';
 import '../services/medicine_storage.dart';
 import '../utils/time_utils.dart';
 import 'add_medicine_screen.dart';
+import 'scan_prescription_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,6 +118,19 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         _medicines[index] = result;
       }
+    });
+    await _medicineStorage.save(_medicines);
+  }
+
+  /// Opens the prescription scanner and adds the medicines it returns.
+  Future<void> _openScanScreen() async {
+    final result = await Navigator.push<List<Medicine>>(
+      context,
+      MaterialPageRoute(builder: (context) => const ScanPrescriptionScreen()),
+    );
+    if (result == null || result.isEmpty || !mounted) return;
+    setState(() {
+      _medicines.addAll(result);
     });
     await _medicineStorage.save(_medicines);
   }
@@ -325,7 +339,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Medicines')),
+      appBar: AppBar(
+        title: const Text('My Medicines'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.document_scanner_outlined),
+            tooltip: 'Scan prescription',
+            onPressed: _openScanScreen,
+          ),
+        ],
+      ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openForm(),
