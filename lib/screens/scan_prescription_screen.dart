@@ -93,6 +93,10 @@ Date: 15-10-2026
         'Found ${_results.length} medicine(s). Untick any you do not want.',
         style: Theme.of(context).textTheme.titleMedium,
       ),
+      const SizedBox(height: 4),
+      const Text(
+        'Always check these against your real prescription before adding.',
+      ),
       for (var i = 0; i < _results.length; i++)
         CheckboxListTile(
           value: _selected[i],

@@ -146,6 +146,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Shows the About box with the medical disclaimer.
+  void _showAbout() {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Medicine Reminder',
+      applicationVersion: '1.0.0',
+      applicationIcon: const Icon(Icons.medication, size: 40),
+      children: const [
+        SizedBox(height: 12),
+        Text(
+          'Helps you remember your medicines, track your doses and share a '
+          'weekly report with family.',
+        ),
+        SizedBox(height: 12),
+        Text(
+          "This app is a reminder tool, not a substitute for medical advice. "
+          "Always follow your doctor's instructions.",
+        ),
+      ],
+    );
+  }
+
   Future<void> _confirmDelete(Medicine medicine) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -362,6 +384,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.document_scanner_outlined),
             tooltip: 'Scan prescription',
             onPressed: _openScanScreen,
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'About',
+            onPressed: _showAbout,
           ),
         ],
       ),
