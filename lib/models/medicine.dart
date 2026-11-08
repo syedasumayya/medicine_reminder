@@ -9,6 +9,10 @@ class Medicine {
   /// It is null for medicines saved before this feature existed.
   final String? createdOn;
 
+  /// Which pill picture to show (0 to 8).
+  /// It is null for older medicines, which then get an automatic picture.
+  final int? iconIndex;
+
   const Medicine({
     required this.id,
     required this.name,
@@ -16,23 +20,26 @@ class Medicine {
     required this.hour,
     required this.minute,
     this.createdOn,
+    this.iconIndex,
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'dose': dose,
-    'hour': hour,
-    'minute': minute,
-    if (createdOn != null) 'createdOn': createdOn,
-  };
+        'id': id,
+        'name': name,
+        'dose': dose,
+        'hour': hour,
+        'minute': minute,
+        if (createdOn != null) 'createdOn': createdOn,
+        if (iconIndex != null) 'iconIndex': iconIndex,
+      };
 
   factory Medicine.fromJson(Map<String, dynamic> json) => Medicine(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    dose: json['dose'] as String,
-    hour: json['hour'] as int,
-    minute: json['minute'] as int,
-    createdOn: json['createdOn'] as String?,
-  );
+        id: json['id'] as int,
+        name: json['name'] as String,
+        dose: json['dose'] as String,
+        hour: json['hour'] as int,
+        minute: json['minute'] as int,
+        createdOn: json['createdOn'] as String?,
+        iconIndex: json['iconIndex'] as int?,
+      );
 }

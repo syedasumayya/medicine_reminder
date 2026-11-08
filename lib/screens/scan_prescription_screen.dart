@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
 import '../services/prescription_parser.dart';
-import '../utils/time_utils.dart';
+import 'review_medicines_screen.dart';
 
 class ScanPrescriptionScreen extends StatefulWidget {
   const ScanPrescriptionScreen({super.key});
@@ -19,9 +19,7 @@ Date: 15-10-2026
 4) Tab Vitamin D''';
 
   final _textController = TextEditingController();
-  List<ParsedMedicine> _results = [];
-  List<bool> _selected = [];
-  bool _searched = false;
+  bool _noResults = false;
 
   @override
   void dispose() {
@@ -32,138 +30,120 @@ Date: 15-10-2026
   void _loadExample() {
     setState(() {
       _textController.text = _exampleText;
+      _noResults = false;
     });
   }
 
-  void _findMedicines() {
+  Future<void> _findMedicines() async {
     final found = PrescriptionParser.parse(_textController.text);
+    if (found.isEmpty) {
+      setState(() {
+        _noResults = true;
+      });
+      return;
+    }
     setState(() {
-      _results = found;
-      _selected = List<bool>.filled(found.length, true);
-      _searched = true;
+      _noResults = false;
     });
-  }
 
-  void _addSelected() {
-    final baseId = DateTime.now().millisecondsSinceEpoch.remainder(100000000);
-    final medicines = <Medicine>[];
-    var counter = 0;
-    for (var i = 0; i < _results.length; i++) {
-      if (!_selected[i]) continue;
-      for (final hour in _results[i].hours) {
-        medicines.add(
-          Medicine(
-            id: baseId + counter,
-            name: _results[i].name,
-            dose: _results[i].dose,
-            hour: hour,
-            minute: 0,
-            createdOn: todayKey(),
-          ),
-        );
-        counter++;
-      }
-    }
-    Navigator.pop(context, medicines);
-  }
-
-  String _describe(ParsedMedicine medicine) {
-    final times = medicine.hours
-        .map((h) => TimeOfDay(hour: h, minute: 0).format(context))
-        .join(', ');
-    final note = medicine.timesGuessed ? '  (time guessed, please check)' : '';
-    return '${medicine.dose} at $times$note';
-  }
-
-  List<Widget> _buildResults() {
-    if (!_searched) return [];
-
-    if (_results.isEmpty) {
-      return [
-        const Text(
-          'No medicines found. Put each medicine on its own line, starting '
-          'with Tab, Cap, Syp, Inj, Drops, Oint or Cream.',
-        ),
-      ];
-    }
-
-    final selectedCount = _selected.where((s) => s).length;
-    return [
-      Text(
-        'Found ${_results.length} medicine(s). Untick any you do not want.',
-        style: Theme.of(context).textTheme.titleMedium,
+    final result = await Navigator.push<List<Medicine>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReviewMedicinesScreen(parsed: found),
       ),
-      const SizedBox(height: 4),
-      const Text(
-        'Always check these against your real prescription before adding.',
-      ),
-      for (var i = 0; i < _results.length; i++)
-        CheckboxListTile(
-          value: _selected[i],
-          onChanged: (value) {
-            setState(() {
-              _selected[i] = value ?? false;
-            });
-          },
-          title: Text(_results[i].name),
-          subtitle: Text(_describe(_results[i])),
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
-      const SizedBox(height: 8),
-      FilledButton(
-        onPressed: selectedCount == 0 ? null : _addSelected,
-        child: Text('Add $selectedCount selected'),
-      ),
-    ];
+    );
+    if (result == null || !mounted) return;
+    Navigator.pop(context, result);
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: scheme.outlineVariant),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Prescription')),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        title: const Text(
+          'Scan Prescription',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
-          Card(
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Camera scanning comes later (Phase 5b, on Android). For now, '
-                'type or paste the text of a prescription below, one medicine '
-                'per line.',
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
           TextField(
             controller: _textController,
-            minLines: 5,
-            maxLines: 10,
-            decoration: const InputDecoration(
-              labelText: 'Prescription text',
+            minLines: 7,
+            maxLines: 12,
+            decoration: InputDecoration(
               hintText: 'Tab Panadol 500mg 1+0+1 x 5 days',
-              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: scheme.surface,
+              border: border,
+              enabledBorder: border,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: scheme.primary, width: 2),
+              ),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: _loadExample,
-                child: const Text('Load example'),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _findMedicines,
-                  child: const Text('Find medicines'),
-                ),
-              ),
-            ],
+          const SizedBox(height: 14),
+          FilledButton.tonalIcon(
+            onPressed: _loadExample,
+            icon: const Icon(Icons.description_outlined),
+            label: const Text('Load example'),
           ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: _findMedicines,
+            icon: const Icon(Icons.search),
+            label: const Text('Find medicines'),
+          ),
+          if (_noResults) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: scheme.errorContainer,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                'No medicines found. Put each medicine on its own line, '
+                'starting with Tab, Cap, Syp, Inj, Drops, Oint or Cream.',
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
-          ..._buildResults(),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: scheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Put each medicine on its own line. Only lines starting '
+                    'with Tab, Tablet, Cap, Capsule, Syp, Syrup, Inj, '
+                    'Injection, Drops, Oint, Ointment or Cream are read.',
+                    style: TextStyle(color: scheme.onPrimaryContainer),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
