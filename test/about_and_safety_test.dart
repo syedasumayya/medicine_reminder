@@ -66,7 +66,7 @@ void main() {
     await tester.pumpWidget(const MedicineReminderApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.document_scanner_outlined));
+    await tester.tap(find.byIcon(Icons.upload_file_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Load example'));
     await tester.pumpAndSettle();

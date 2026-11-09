@@ -4,12 +4,14 @@ import '../models/dose_log.dart';
 import '../models/medicine.dart';
 import '../services/dose_log_storage.dart';
 import '../services/medicine_storage.dart';
+import '../services/reminder_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/pill_image.dart';
 import 'about_screen.dart';
 import 'add_medicine_screen.dart';
+import 'reminder_settings_screen.dart';
 import 'report_screen.dart';
 import 'scan_prescription_screen.dart';
 
@@ -23,9 +25,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final MedicineStorage _medicineStorage = MedicineStorage();
   final DoseLogStorage _logStorage = DoseLogStorage();
+  final ReminderService _reminders = ReminderService();
 
   List<Medicine> _medicines = [];
   List<DoseLog> _logs = [];
+  ReminderSettings? _reminderSettings;
   bool _loading = true;
 
   Timer? _timer;
@@ -53,11 +57,60 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     final medicines = await _medicineStorage.load();
     final logs = await _logStorage.load();
+    final reminderSettings = await _reminders.loadSettings();
     if (!mounted) return;
     setState(() {
       _medicines = medicines;
       _logs = logs;
+      _reminderSettings = reminderSettings;
       _loading = false;
+    });
+    await _autoSyncReminders();
+  }
+
+  // ---------- Phone reminders ----------
+
+  /// When the app opens, refresh the phone reminders if it was a while ago.
+  Future<void> _autoSyncReminders() async {
+    final settings = _reminderSettings;
+    if (settings == null || !settings.enabled) return;
+    if (await _reminders.needsAutoSync(settings)) {
+      await _reminders.syncAll(
+        settings: settings,
+        medicines: _medicines,
+        logs: _logs,
+      );
+    }
+  }
+
+  /// Schedules all the coming phone reminders again (after the list changed).
+  void _syncReminders() {
+    final settings = _reminderSettings;
+    if (settings == null || !settings.enabled) return;
+    unawaited(
+      _reminders.syncAll(
+        settings: settings,
+        medicines: _medicines,
+        logs: _logs,
+      ),
+    );
+  }
+
+  Future<void> _openReminderSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReminderSettingsScreen(
+          medicines: _medicines,
+          logs: _logs,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    final settings = await _reminders.loadSettings();
+    if (!mounted) return;
+    setState(() {
+      _reminderSettings = settings;
     });
   }
 
@@ -123,6 +176,18 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
     await _logStorage.save(_logs);
+
+    // Cancel (or bring back) today's reminder on the phone.
+    final settings = _reminderSettings;
+    if (settings != null && settings.enabled) {
+      unawaited(
+        _reminders.onDoseChanged(
+          settings: settings,
+          medicine: medicine,
+          status: status,
+        ),
+      );
+    }
   }
 
   /// Opens the form. If [existing] is given, it edits that medicine.
@@ -151,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
     await _medicineStorage.save(_medicines);
+    _syncReminders();
   }
 
   Future<void> _deleteMedicine(Medicine medicine) async {
@@ -160,10 +226,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     await _medicineStorage.save(_medicines);
     await _logStorage.save(_logs);
+
+    final settings = _reminderSettings;
+    if (settings != null && settings.enabled) {
+      unawaited(
+        _reminders.onMedicineRemoved(settings: settings, medicine: medicine),
+      );
+    }
   }
 
-  /// Opens the prescription scanner and adds the medicines it returns.
-  Future<void> _openScanScreen() async {
+  /// Opens the prescription import screen and adds the medicines it returns.
+  Future<void> _openImportScreen() async {
     final result = await Navigator.push<List<Medicine>>(
       context,
       MaterialPageRoute(
@@ -175,6 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _medicines.addAll(result);
     });
     await _medicineStorage.save(_medicines);
+    _syncReminders();
   }
 
   /// Opens the weekly report.
@@ -198,10 +272,11 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Handles taps on the bottom bar (Home is the screen we are already on).
   void _onNavTap(int index) {
     if (index == 1) _openReport();
-    if (index == 2) _openAbout();
+    if (index == 2) _openReminderSettings();
+    if (index == 3) _openAbout();
   }
 
-  // ---------- In-app reminders ----------
+  // ---------- In-app reminders (pop-up while the app is open) ----------
 
   Future<void> _checkDueMedicines() async {
     if (!mounted) return;
@@ -314,6 +389,57 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Shown until the phone reminders are turned on.
+  Widget _buildReminderBanner() {
+    final settings = _reminderSettings;
+    if (settings == null || settings.enabled) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      color: scheme.primaryContainer,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: _openReminderSettings,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Get reminders on your phone',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tap to set up notifications that ring even when '
+                      'the app is closed.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.primary),
+            ],
+          ),
         ),
       ),
     );
@@ -506,7 +632,7 @@ class _HomeScreenState extends State<HomeScreen> {
       groups[_periodOf(medicine)]!.add(medicine);
     }
 
-    final children = <Widget>[_buildSummary()];
+    final children = <Widget>[_buildSummary(), _buildReminderBanner()];
     for (final entry in groups.entries) {
       if (entry.value.isEmpty) continue;
       children.add(_buildSectionHeader(entry.key));
@@ -528,7 +654,8 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           _buildSummary(),
-          const SizedBox(height: 32),
+          _buildReminderBanner(),
+          const SizedBox(height: 24),
           const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -563,9 +690,9 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           _topBarButton(Icons.bar_chart, 'Weekly report', _openReport),
           _topBarButton(
-            Icons.document_scanner_outlined,
-            'Scan prescription',
-            _openScanScreen,
+            Icons.upload_file_outlined,
+            'Import prescription',
+            _openImportScreen,
           ),
           _topBarButton(Icons.info_outline, 'About', _openAbout),
         ],
@@ -585,6 +712,10 @@ class _HomeScreenState extends State<HomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.bar_chart_rounded),
             label: 'Report',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notifications_outlined),
+            label: 'Reminders',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
