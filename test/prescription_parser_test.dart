@@ -60,4 +60,42 @@ Date: 15-10-2026
   test('empty text gives an empty list', () {
     expect(PrescriptionParser.parse(''), isEmpty);
   });
+
+  test('a timing on the next line belongs to the medicine above it', () {
+    const text = '''1) Tab Panadol 500mg
+1+0+1 x 5 days
+2) Cap. Amoxil 500mg
+TDS''';
+
+    final result = PrescriptionParser.parse(text);
+
+    expect(result.length, 2);
+    expect(result[0].name, 'Panadol 500mg');
+    expect(result[0].hours, [8, 21]);
+    expect(result[0].timesGuessed, false);
+    expect(result[1].name, 'Amoxil 500mg');
+    expect(result[1].hours, [8, 14, 21]);
+  });
+
+  test('text taken from a typed PDF prescription is understood', () {
+    const text = '''City Clinic - Prescription
+Dr. Ahmed Khan
+Date: 08-11-2026
+Patient: Test Patient
+Rx
+1) Tab Panadol 500mg 1+0+1 x 5 days
+2) Cap. Amoxil 500mg TDS x 7 days
+3) Syp Brufen 5ml BD
+4) Tab Vitamin D
+Take medicines after meals. Come back after 7 days.''';
+
+    final result = PrescriptionParser.parse(text);
+
+    expect(
+      result.map((m) => m.name).toList(),
+      ['Panadol 500mg', 'Amoxil 500mg', 'Brufen 5ml', 'Vitamin D'],
+    );
+    // 2 + 3 + 2 + 1 doses a day
+    expect(result.fold<int>(0, (sum, m) => sum + m.hours.length), 8);
+  });
 }

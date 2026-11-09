@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/medicine.dart';
+import '../services/pdf_import.dart';
 import '../services/prescription_parser.dart';
 import 'review_medicines_screen.dart';
 
+/// The screen where a prescription is imported: the user uploads a PDF
+/// (or pastes the text), then presses Find medicines.
 class ScanPrescriptionScreen extends StatefulWidget {
-  const ScanPrescriptionScreen({super.key});
+  /// How a PDF is picked and read. The tests give a fake one.
+  final Future<PdfImportResult?> Function() pickPdf;
+
+  const ScanPrescriptionScreen({super.key, this.pickPdf = pickAndReadPdf});
 
   @override
   State<ScanPrescriptionScreen> createState() => _ScanPrescriptionScreenState();
@@ -20,6 +26,9 @@ Date: 15-10-2026
 
   final _textController = TextEditingController();
   bool _noResults = false;
+  bool _reading = false;
+  String? _pdfMessage;
+  bool _pdfMessageIsError = false;
 
   @override
   void dispose() {
@@ -31,6 +40,60 @@ Date: 15-10-2026
     setState(() {
       _textController.text = _exampleText;
       _noResults = false;
+      _pdfMessage = null;
+    });
+  }
+
+  Future<void> _uploadPdf() async {
+    setState(() {
+      _reading = true;
+      _pdfMessage = null;
+      _noResults = false;
+    });
+
+    PdfImportResult? result;
+    var pickerFailed = false;
+    try {
+      result = await widget.pickPdf();
+    } catch (_) {
+      pickerFailed = true;
+    }
+    if (!mounted) return;
+
+    if (pickerFailed) {
+      setState(() {
+        _reading = false;
+        _pdfMessage = 'Something went wrong while opening the file picker.';
+        _pdfMessageIsError = true;
+      });
+      return;
+    }
+
+    // The user closed the picker without choosing a file.
+    if (result == null) {
+      setState(() {
+        _reading = false;
+      });
+      return;
+    }
+
+    final picked = result;
+    setState(() {
+      _reading = false;
+      if (picked.failed) {
+        _pdfMessage = '${picked.fileName} could not be read. '
+            'Please check that it is a real PDF file.';
+        _pdfMessageIsError = true;
+      } else if (picked.text.trim().isEmpty) {
+        _pdfMessage = 'No text was found in ${picked.fileName}. It may be a '
+            'photo or a scan. Please paste the text instead.';
+        _pdfMessageIsError = true;
+      } else {
+        _textController.text = picked.text;
+        _pdfMessage = 'Read ${picked.fileName}. Check the text below, then '
+            'press Find medicines.';
+        _pdfMessageIsError = false;
+      }
     });
   }
 
@@ -70,19 +133,46 @@ Date: 15-10-2026
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
         title: const Text(
-          'Scan Prescription',
+          'Import Prescription',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
+          FilledButton.icon(
+            onPressed: _reading ? null : _uploadPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: Text(_reading ? 'Reading PDF...' : 'Upload PDF'),
+          ),
+          if (_pdfMessage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _pdfMessageIsError
+                    ? scheme.errorContainer
+                    : scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                _pdfMessage!,
+                style: TextStyle(
+                  color: _pdfMessageIsError
+                      ? scheme.onErrorContainer
+                      : scheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
           TextField(
             controller: _textController,
             minLines: 7,
             maxLines: 12,
             decoration: InputDecoration(
-              hintText: 'Tab Panadol 500mg 1+0+1 x 5 days',
+              hintText: 'Or paste the prescription text here, for example:\n'
+                  'Tab Panadol 500mg 1+0+1 x 5 days',
               filled: true,
               fillColor: scheme.surface,
               border: border,
@@ -135,9 +225,10 @@ Date: 15-10-2026
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Put each medicine on its own line. Only lines starting '
-                    'with Tab, Tablet, Cap, Capsule, Syp, Syrup, Inj, '
-                    'Injection, Drops, Oint, Ointment or Cream are read.',
+                    'Upload a PDF that contains text (a typed prescription). '
+                    'A photo or a scan saved as PDF cannot be read. Only lines '
+                    'starting with Tab, Tablet, Cap, Capsule, Syp, Syrup, Inj, '
+                    'Injection, Drops, Oint, Ointment or Cream are used.',
                     style: TextStyle(color: scheme.onPrimaryContainer),
                   ),
                 ),

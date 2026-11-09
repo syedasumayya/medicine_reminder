@@ -47,16 +47,42 @@ class PrescriptionParser {
     caseSensitive: false,
   );
 
+  // A line that STARTS with a timing, like "1+0+1 x 5 days" or "BD".
+  // In PDFs the timing is sometimes on the line after the medicine name.
+  static final RegExp _timingStart = RegExp(
+    r'^(?:\d\s*[+\-]\s*\d(?:\s*[+\-]\s*\d)?|od|qd|bd|bid|tds|tid|qid|hs)\b',
+    caseSensitive: false,
+  );
+
   static final RegExp _trailingJunk = RegExp(r'[\s,;:\-\.]+$');
 
   /// Goes through the text line by line and returns every medicine it finds.
   static List<ParsedMedicine> parse(String text) {
     final results = <ParsedMedicine>[];
-    for (final rawLine in text.split(RegExp(r'[\r\n]+'))) {
-      final parsed = _parseLine(rawLine);
+    for (final line in _joinContinuationLines(text)) {
+      final parsed = _parseLine(line);
       if (parsed != null) results.add(parsed);
     }
     return results;
+  }
+
+  /// If a line only holds a timing (like "1+0+1 x 5 days") and the line before
+  /// it is a medicine, they belong together, so we join them.
+  static List<String> _joinContinuationLines(String text) {
+    final lines = <String>[];
+    for (final rawLine in text.split(RegExp(r'[\r\n]+'))) {
+      final line = rawLine.trim();
+      if (line.isEmpty) continue;
+
+      final previousIsMedicine = lines.isNotEmpty &&
+          _formPrefix.hasMatch(lines.last.replaceFirst(_numberPrefix, ''));
+      if (previousIsMedicine && _timingStart.hasMatch(line)) {
+        lines[lines.length - 1] = '${lines.last} $line';
+      } else {
+        lines.add(line);
+      }
+    }
+    return lines;
   }
 
   static ParsedMedicine? _parseLine(String rawLine) {
