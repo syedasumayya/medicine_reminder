@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../widgets/pill_image.dart';
+import '../widgets/app_logo.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -22,18 +22,17 @@ class AboutScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         children: [
-          const Center(child: PillBadge(index: 0, size: 120)),
-          const SizedBox(height: 20),
-          Center(
-            child: Text(
-              'Medicine Reminder',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
+          // The logo has dark letters, so it always sits on a white card.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: scheme.outlineVariant),
             ),
+            child: const Center(child: AppLogo(width: 280)),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 16),
           Center(
             child: Text(
               'v1.0.0',
@@ -58,7 +57,7 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            "Always follow your doctor's instructions, and check scanned "
+            "Always follow your doctor's instructions, and check imported "
             'prescriptions by hand.',
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
