@@ -7,6 +7,7 @@ import '../services/medicine_storage.dart';
 import '../services/reminder_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/time_utils.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/pill_image.dart';
 import 'about_screen.dart';
@@ -304,6 +305,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------- Screen parts ----------
+
+  /// The logo in the top bar. It has dark letters, so in dark mode it sits
+  /// on a small white card.
+  Widget _buildTitle() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const logo = AppLogo(width: 150);
+    return Semantics(
+      header: true,
+      label: 'My Medicines',
+      child: isDark
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: logo,
+            )
+          : logo,
+    );
+  }
 
   /// A round, light-purple button for the top bar.
   Widget _topBarButton(IconData icon, String tooltip, VoidCallback onPressed) {
@@ -683,10 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
-        title: const Text(
-          'My Medicines',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
+        title: _buildTitle(),
         actions: [
           _topBarButton(Icons.bar_chart, 'Weekly report', _openReport),
           _topBarButton(

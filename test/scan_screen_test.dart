@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicine_reminder/main.dart';
+import 'package:medicine_reminder/widgets/app_logo.dart';
 import 'package:medicine_reminder/screens/scan_prescription_screen.dart';
 import 'package:medicine_reminder/services/pdf_import.dart';
 
@@ -108,7 +109,7 @@ void main() {
     await tester.tap(find.text('Add 8 selected'));
     await tester.pumpAndSettle();
 
-    expect(find.text('My Medicines'), findsOneWidget);
+    expect(find.byType(AppLogo), findsOneWidget);
     expect(find.text('Vitamin D'), findsOneWidget);
     expect(find.text('Panadol 500mg'), findsNWidgets(2));
     expect(find.text('Amoxil 500mg'), findsNWidgets(3));
