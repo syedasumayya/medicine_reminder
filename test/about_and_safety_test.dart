@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicine_reminder/main.dart';
+import 'package:medicine_reminder/widgets/app_logo.dart';
 
 /// Makes the fake test screen tall, so the whole screen is built and visible.
 void _useTallScreen(WidgetTester tester) {
@@ -16,7 +17,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('About page shows the medical disclaimer',
+  testWidgets('About page shows the logo and the medical disclaimer',
       (WidgetTester tester) async {
     _useTallScreen(tester);
     await tester.pumpWidget(const MedicineReminderApp());
@@ -25,7 +26,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.info_outline));
     await tester.pumpAndSettle();
 
-    expect(find.text('Medicine Reminder'), findsOneWidget);
+    expect(find.byType(AppLogo), findsOneWidget);
     expect(find.text('v1.0.0'), findsOneWidget);
     expect(
       find.textContaining('not a substitute for medical advice'),
