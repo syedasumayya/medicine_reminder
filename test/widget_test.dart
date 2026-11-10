@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:medicine_reminder/main.dart';
+import 'package:medicine_reminder/widgets/app_logo.dart';
 import 'package:medicine_reminder/utils/time_utils.dart';
 
 String _oneMedicineJson() => jsonEncode([
-      {'id': 1, 'name': 'Panadol', 'dose': '1 tablet', 'hour': 8, 'minute': 0}
-    ]);
+  {'id': 1, 'name': 'Panadol', 'dose': '1 tablet', 'hour': 8, 'minute': 0},
+]);
 
 /// Makes the fake test screen tall, so the whole screen is built and visible.
 void _useTallScreen(WidgetTester tester) {
@@ -31,12 +32,13 @@ void main() {
   testWidgets('Empty list shows a hint message', (WidgetTester tester) async {
     await _startApp(tester);
 
-    expect(find.text('My Medicines'), findsOneWidget);
+    expect(find.byType(AppLogo), findsOneWidget);
     expect(find.textContaining('No medicines yet'), findsOneWidget);
   });
 
-  testWidgets('Add button opens the Add Medicine screen',
-      (WidgetTester tester) async {
+  testWidgets('Add button opens the Add Medicine screen', (
+    WidgetTester tester,
+  ) async {
     await _startApp(tester);
 
     await tester.tap(find.byIcon(Icons.add));
@@ -58,8 +60,9 @@ void main() {
     expect(find.text('Please enter the dose'), findsOneWidget);
   });
 
-  testWidgets('A new medicine appears in the list after saving',
-      (WidgetTester tester) async {
+  testWidgets('A new medicine appears in the list after saving', (
+    WidgetTester tester,
+  ) async {
     await _startApp(tester);
 
     await tester.tap(find.byIcon(Icons.add));
@@ -73,8 +76,9 @@ void main() {
     expect(find.text('Ibuprofen'), findsOneWidget);
   });
 
-  testWidgets('Saved medicines are loaded when the app starts',
-      (WidgetTester tester) async {
+  testWidgets('Saved medicines are loaded when the app starts', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'medicines': _oneMedicineJson()});
     await _startApp(tester);
 
@@ -82,13 +86,32 @@ void main() {
     expect(find.text('0 of 1 taken today'), findsOneWidget);
   });
 
-  testWidgets('Medicines are grouped into Morning, Afternoon and Evening',
-      (WidgetTester tester) async {
+  testWidgets('Medicines are grouped into Morning, Afternoon and Evening', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'medicines': jsonEncode([
-        {'id': 1, 'name': 'Panadol', 'dose': '1 tablet', 'hour': 8, 'minute': 0},
-        {'id': 2, 'name': 'Brufen', 'dose': '1 tablet', 'hour': 14, 'minute': 0},
-        {'id': 3, 'name': 'Vitamin D', 'dose': '1 capsule', 'hour': 20, 'minute': 0},
+        {
+          'id': 1,
+          'name': 'Panadol',
+          'dose': '1 tablet',
+          'hour': 8,
+          'minute': 0,
+        },
+        {
+          'id': 2,
+          'name': 'Brufen',
+          'dose': '1 tablet',
+          'hour': 14,
+          'minute': 0,
+        },
+        {
+          'id': 3,
+          'name': 'Vitamin D',
+          'dose': '1 capsule',
+          'hour': 20,
+          'minute': 0,
+        },
       ]),
     });
     await _startApp(tester);
@@ -98,8 +121,9 @@ void main() {
     expect(find.text('Evening'), findsOneWidget);
   });
 
-  testWidgets('Mark taken shows Taken and updates the progress',
-      (WidgetTester tester) async {
+  testWidgets('Mark taken shows Taken and updates the progress', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'medicines': _oneMedicineJson()});
     await _startApp(tester);
 
@@ -133,12 +157,13 @@ void main() {
     expect(find.text('Skipped'), findsOneWidget);
   });
 
-  testWidgets('Saved dose status is loaded when the app starts',
-      (WidgetTester tester) async {
+  testWidgets('Saved dose status is loaded when the app starts', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'medicines': _oneMedicineJson(),
       'dose_logs': jsonEncode([
-        {'medicineId': 1, 'date': todayKey(), 'status': 'taken'}
+        {'medicineId': 1, 'date': todayKey(), 'status': 'taken'},
       ]),
     });
     await _startApp(tester);
@@ -147,8 +172,9 @@ void main() {
     expect(find.text('1 of 1 taken today'), findsOneWidget);
   });
 
-  testWidgets('Tapping a medicine opens the edit screen',
-      (WidgetTester tester) async {
+  testWidgets('Tapping a medicine opens the edit screen', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'medicines': _oneMedicineJson()});
     await _startApp(tester);
 
@@ -160,8 +186,9 @@ void main() {
     expect(find.text('Delete Medicine'), findsOneWidget);
   });
 
-  testWidgets('Editing a medicine changes its name in the list',
-      (WidgetTester tester) async {
+  testWidgets('Editing a medicine changes its name in the list', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'medicines': _oneMedicineJson()});
     await _startApp(tester);
 
@@ -175,8 +202,9 @@ void main() {
     expect(find.text('Panadol'), findsNothing);
   });
 
-  testWidgets('Delete Medicine asks for confirmation, then removes it',
-      (WidgetTester tester) async {
+  testWidgets('Delete Medicine asks for confirmation, then removes it', (
+    WidgetTester tester,
+  ) async {
     SharedPreferences.setMockInitialValues({'medicines': _oneMedicineJson()});
     await _startApp(tester);
 
